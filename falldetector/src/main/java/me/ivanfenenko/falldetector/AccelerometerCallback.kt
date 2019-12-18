@@ -4,10 +4,16 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.util.Log
+import me.ivanfenenko.falldetector.database.Database
+import me.ivanfenenko.falldetector.model.FallRecord
+import javax.inject.Inject
 
-class AccelerometerCallback : SensorEventListener {
+class AccelerometerCallback @Inject constructor(
+    private val fallDetector: FallDetector,
+    private val database: Database
+) : SensorEventListener {
 
-    private lateinit var fallDetector: FallDetector
+    var fallDetectionCallback: () -> Unit = {}
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
@@ -16,9 +22,11 @@ class AccelerometerCallback : SensorEventListener {
             val x = event.values[0]
             val y = event.values[1]
             val z = event.values[2]
-            when (fallDetector.measure(x, y, z)) {
-                true -> {
-                    Log.d("AccelerometerCallback", "Fall detected $x $y $z")
+            Log.d("AccelerometerCallback", "Fall detected $x $y $z")
+            when (val record = fallDetector.measure(x, y, z)) {
+                is FallRecord -> {
+                    fallDetectionCallback.invoke()
+                    database.addRecord(record)
                 }
             }
         }

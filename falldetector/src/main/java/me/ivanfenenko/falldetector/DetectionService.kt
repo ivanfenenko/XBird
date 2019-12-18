@@ -6,15 +6,23 @@ import android.content.Intent
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.os.IBinder
+import me.ivanfenenko.falldetector.di.component
+import javax.inject.Inject
 
 class DetectionService : Service() {
 
-    private val accelerometerCallback: AccelerometerCallback = AccelerometerCallback()
+    @Inject
+    lateinit var accelerometerCallback: AccelerometerCallback
 
     private var sensorManager: SensorManager? = null
     private var accelerometer: Sensor? = null
 
     override fun onBind(intent: Intent): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        component(this).inject(this)
+    }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         if (intent.action == ACTION_START) {
@@ -51,6 +59,9 @@ class DetectionService : Service() {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         sensorManager?.registerListener(accelerometerCallback, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
+        accelerometerCallback.fallDetectionCallback = {
+            showFallNotification()
+        }
     }
 
     companion object {
